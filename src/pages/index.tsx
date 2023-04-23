@@ -15,7 +15,7 @@ const CreatePostWizard = () => {
   const { mutate, isLoading: isPosting } = api.post.createPost.useMutation({
     onSuccess: () => {
       setUserInput("");
-      void ctx.post.getAll().invalidate();
+      void ctx.post.getAll.invalidate();
     },
   });
   if (!user) return null;
