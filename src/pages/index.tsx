@@ -3,9 +3,10 @@ import { type NextPage } from "next";
 import Head from "next/head";
 import { api } from "~/utils/api";
 import Image from "next/image";
-import { LoadingPage } from "~/components/loading";
+import { LoadingPage, LoadingSpinner } from "~/components/loading";
 import { useState } from "react";
 import { PostView } from "../components/PostView";
+import toast from "react-hot-toast";
 
 const CreatePostWizard = () => {
   const [userInput, setUserInput] = useState("");
@@ -16,6 +17,14 @@ const CreatePostWizard = () => {
     onSuccess: () => {
       setUserInput("");
       void ctx.post.getAll.invalidate();
+    },
+    onError: (e) => {
+      const errorMessage = e.data?.zodError?.fieldErrors.content;
+      if (errorMessage && errorMessage[0]) {
+        toast.error(errorMessage[0]);
+      } else {
+        toast.error("error trying to post.");
+      }
     },
   });
   if (!user) return null;
@@ -34,8 +43,25 @@ const CreatePostWizard = () => {
         value={userInput}
         onChange={(e) => setUserInput(e.target.value)}
         disabled={isPosting}
+        onKeyDown={(e) => {
+          if (e.key == "Enter") {
+            e.preventDefault();
+
+            if (userInput !== "") {
+              mutate({ content: userInput });
+            }
+          }
+        }}
       />
-      <button onClick={() => mutate({ content: userInput })}>Post</button>
+      {userInput !== "" && !isPosting && (
+        <button onClick={() => mutate({ content: userInput })}>Post</button>
+      )}
+
+      {isPosting && (
+        <div className="flex items-center justify-center">
+          <LoadingSpinner size={20} />
+        </div>
+      )}
     </div>
   );
 };
