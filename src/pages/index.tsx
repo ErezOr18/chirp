@@ -1,15 +1,23 @@
 import { SignInButton, useUser } from "@clerk/nextjs";
 import { type NextPage } from "next";
 import Head from "next/head";
-import { type RouterOutputs, api } from "~/utils/api";
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
+import { api } from "~/utils/api";
 import Image from "next/image";
 import { LoadingPage } from "~/components/loading";
-dayjs.extend(relativeTime);
+import { useState } from "react";
+import { PostView } from "../components/PostView";
 
 const CreatePostWizard = () => {
+  const [userInput, setUserInput] = useState("");
+
+  const ctx = api.useContext();
   const { user } = useUser();
+  const { mutate, isLoading: isPosting } = api.post.createPost.useMutation({
+    onSuccess: () => {
+      setUserInput("");
+      void ctx.post.getAll().invalidate();
+    },
+  });
   if (!user) return null;
   return (
     <div className="flex w-full gap-3">
@@ -20,36 +28,14 @@ const CreatePostWizard = () => {
         width={64}
         height={64}
       />
-      <input placeholder="Type some emojis!" className="grow bg-transparent" />
-    </div>
-  );
-};
-
-type PostWithAuthor = RouterOutputs["post"]["getAll"][number];
-
-const PostView = (props: PostWithAuthor) => {
-  const { post, author } = props;
-  return (
-    <div
-      key={post.id}
-      className="flex gap-3 border-b border-slate-400 p-4 text-2xl"
-    >
-      <Image
-        src={author.profileImageUrl}
-        className=" flex h-12 w-12 rounded-full"
-        alt="Author Profile"
-        width={48}
-        height={48}
+      <input
+        placeholder="Type some emojis!"
+        className="grow bg-transparent outline-none"
+        value={userInput}
+        onChange={(e) => setUserInput(e.target.value)}
+        disabled={isPosting}
       />
-      <div className="flex flex-col">
-        <div className="flex gap-1 font-bold text-slate-300">
-          <span>{`@${author.username}`}</span>
-          <span className=" font-thin">{`   · ${dayjs(
-            post.createdAt
-          ).fromNow()}`}</span>
-        </div>
-        <span>{post.content}</span>
-      </div>
+      <button onClick={() => mutate({ content: userInput })}>Post</button>
     </div>
   );
 };
@@ -63,7 +49,7 @@ const Feed = () => {
 
   return (
     <div className="flex flex-col gap-3">
-      {[...data, ...data]?.map((postWithAuthor) => (
+      {data.map((postWithAuthor) => (
         <PostView {...postWithAuthor} key={postWithAuthor.post.id} />
       ))}
     </div>
